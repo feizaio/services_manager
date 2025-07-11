@@ -1,0 +1,9 @@
+{
+    "nginx": {
+        "process_name": "nginx.exe",
+        "start_cmd": "start nginx.exe",
+        "reload_cmd": "nginx.exe -s reload",
+        "work_dir": "E:\\sdk\\Wish3DEarthV2.6.6\\nginx",
+        "port": "81"
+    }
+}

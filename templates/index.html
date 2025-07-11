@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wish3DEarth服务管理工具</title>
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.10.5/font/bootstrap-icons.min.css">
+    <style>
+        .menu-btn {
+            width: 100%;
+            text-align: left;
+            padding: 15px 20px;
+            border: none;
+            background: none;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        
+        .menu-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .status-running {
+            color: #28a745;
+        }
+        
+        .status-stopped {
+            color: #dc3545;
+        }
+        
+        .sidebar {
+            background-color: #2c3e50;
+            min-height: 100vh;
+            padding: 0;
+        }
+        
+        .content {
+            padding: 20px;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 左侧菜单 -->
+            <div class="col-md-2 sidebar">
+                <div class="p-3 text-center text-white">
+                    <h4>服务管理工具</h4>
+                </div>
+                <div class="nav flex-column">
+                    <button class="menu-btn" data-target="service-tab">数据库管理</button>
+                    <button class="menu-btn" data-target="middleware-tab">中间件管理</button>
+                    <button class="menu-btn" data-target="java-tab">Java进程管理</button>
+                </div>
+                <div class="mt-auto p-3 text-center text-white">
+                    <small>Version 1.0.0</small>
+                </div>
+            </div>
+            
+            <!-- 主内容区域 -->
+            <div class="col-md-10 content">
+                <!-- 服务管理标签页 -->
+                <div id="service-tab" class="tab-content active">
+                    <h2 class="mb-4">数据库服务管理</h2>
+                    <div id="service-list" class="row">
+                        <!-- 服务列表将通过JS动态加载 -->
+                    </div>
+                </div>
+                
+                <!-- 中间件管理标签页 -->
+                <div id="middleware-tab" class="tab-content">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2>中间件管理</h2>
+                        <button class="btn btn-primary" id="add-middleware-btn">添加中间件</button>
+                    </div>
+                    <div id="middleware-list" class="row">
+                        <!-- 中间件列表将通过JS动态加载 -->
+                    </div>
+                </div>
+                
+                <!-- Java进程管理标签页 -->
+                <div id="java-tab" class="tab-content">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2>Java进程管理</h2>
+                        <button class="btn btn-primary" id="add-java-btn">添加Java进程</button>
+                    </div>
+                    <div id="java-list" class="row">
+                        <!-- Java进程列表将通过JS动态加载 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加中间件模态框 -->
+    <div class="modal fade" id="addMiddlewareModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">添加新中间件</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addMiddlewareForm">
+                        <div class="mb-3">
+                            <label class="form-label">显示名称</label>
+                            <input type="text" class="form-control" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">进程名称</label>
+                            <input type="text" class="form-control" name="process_name" required>
+                            <small class="text-muted">用于进程检测，例如: nginx.exe</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">启动命令</label>
+                            <input type="text" class="form-control" name="start_cmd" required>
+                            <small class="text-muted">例如: start nginx.exe</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">重载命令</label>
+                            <input type="text" class="form-control" name="reload_cmd">
+                            <small class="text-muted">例如: nginx.exe -s reload</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">工作目录</label>
+                            <input type="text" class="form-control" name="work_dir">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="saveMiddlewareBtn">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加Java进程模态框 -->
+    <div class="modal fade" id="addJavaModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">添加新Java进程</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addJavaForm">
+                        <div class="mb-3">
+                            <label class="form-label">显示名称</label>
+                            <input type="text" class="form-control" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">JAR包名称</label>
+                            <input type="text" class="form-control" name="jar_name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">启动脚本路径</label>
+                            <input type="text" class="form-control" name="script">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="saveJavaBtn">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加文件浏览器模态框 -->
+    <div class="modal fade" id="fileBrowserModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">文件浏览器</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb" id="file-path-breadcrumb">
+                            <li class="breadcrumb-item"><a href="#" data-path="">根目录</a></li>
+                        </ol>
+                    </nav>
+                    
+                    <div class="list-group" id="file-list">
+                        <!-- 文件列表将通过JavaScript动态加载 -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="selectPathBtn">选择当前路径</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加nginx端口配置模态框 -->
+    <div class="modal fade" id="updatePortModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">修改端口号</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="updatePortForm">
+                        <input type="hidden" id="portMiddlewareName" name="middleware_name">
+                        <div class="mb-3">
+                            <label class="form-label">新端口号</label>
+                            <input type="number" class="form-control" id="newPort" name="port" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="savePortBtn">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加代理配置模态框 -->
+    <div class="modal fade" id="addProxyModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">添加反向代理配置</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addProxyForm">
+                        <input type="hidden" id="proxyMiddlewareName" name="middleware_name">
+                        <div class="mb-3">
+                            <label class="form-label">代理后缀</label>
+                            <input type="text" class="form-control" name="suffix" required placeholder="/api">
+                            <small class="text-muted">以/开头的路径，例如: /api</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">目标地址</label>
+                            <input type="text" class="form-control" name="target" required placeholder="http://localhost:8080">
+                            <small class="text-muted">目标服务器地址，例如: http://localhost:8080</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="saveProxyBtn">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加查看代理配置模态框 -->
+    <div class="modal fade" id="viewProxyModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">查看代理配置</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>代理路径</th>
+                                <th>目标地址</th>
+                            </tr>
+                        </thead>
+                        <tbody id="proxyTableBody">
+                            <!-- 代理配置列表将通过JavaScript动态加载 -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/socket.io/4.6.0/socket.io.min.js"></script>
+    <script>
+        // WebSocket连接管理
+        let socket;
+        let reconnectTimeout;
+        
+        function setupSocket() {
+            // 建立WebSocket连接
+            socket = io({
+                reconnection: true,
+                reconnectionDelay: 1000,
+                reconnectionAttempts: Infinity
+            });
+            
+            // 连接成功
+            socket.on('connect', function() {
+                console.log('WebSocket连接已建立');
+                clearTimeout(reconnectTimeout);
+                
+                // 连接成功后立即请求最新状态
+                loadServices();
+                loadMiddlewares();
+                loadJavaProcesses();
+            });
+            
+            // 连接断开
+            socket.on('disconnect', function() {
+                console.log('WebSocket连接已断开');
+                reconnectTimeout = setTimeout(() => {
+                    console.log('尝试重连...');
+                    socket.connect();
+                }, 3000);
+            });
+            
+            // 连接错误
+            socket.on('connect_error', function(error) {
+                console.log('WebSocket连接错误:', error);
+            });
+            
+            // 监听状态更新
+            socket.on('status_update', function(data) {
+                console.log('收到状态更新:', data);
+                updateServiceStatus(data.services);
+                updateJavaStatus(data.java);
+                updateMiddlewareStatus(data.middleware);
+            });
+        }
+        
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化WebSocket
+            setupSocket();
+            
+            // 加载服务列表
+            loadServices();
+            
+            // 加载中间件列表
+            loadMiddlewares();
+            
+            // 加载Java进程列表
+            loadJavaProcesses();
+            
+            // 切换标签页
+            document.querySelectorAll('.menu-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const targetId = this.dataset.target;
+                    
+                    // 隐藏所有标签页
+                    document.querySelectorAll('.tab-content').forEach(tab => {
+                        tab.classList.remove('active');
+                    });
+                    
+                    // 显示目标标签页
+                    document.getElementById(targetId).classList.add('active');
+                });
+            });
+
+            // 初始化模态框
+            const addMiddlewareModal = new bootstrap.Modal(document.getElementById('addMiddlewareModal'));
+            const addJavaModal = new bootstrap.Modal(document.getElementById('addJavaModal'));
+            const updatePortModal = new bootstrap.Modal(document.getElementById('updatePortModal'));
+            const addProxyModal = new bootstrap.Modal(document.getElementById('addProxyModal'));
+            const viewProxyModal = new bootstrap.Modal(document.getElementById('viewProxyModal'));
+
+            // 添加中间件按钮点击事件
+            document.getElementById('add-middleware-btn').addEventListener('click', () => {
+                addMiddlewareModal.show();
+            });
+
+            // 添加Java进程按钮点击事件
+            document.getElementById('add-java-btn').addEventListener('click', () => {
+                addJavaModal.show();
+            });
+
+            // 保存中间件按钮点击事件
+            document.getElementById('saveMiddlewareBtn').addEventListener('click', () => {
+                const form = document.getElementById('addMiddlewareForm');
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+
+                fetch('/api/middleware/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.status === 'success') {
+                        addMiddlewareModal.hide();
+                        form.reset();
+                        loadMiddlewares();
+                    }
+                    alert(result.message);
+                });
+            });
+
+            // 保存Java进程按钮点击事件
+            document.getElementById('saveJavaBtn').addEventListener('click', () => {
+                const form = document.getElementById('addJavaForm');
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+
+                fetch('/api/java/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.status === 'success') {
+                        addJavaModal.hide();
+                        form.reset();
+                        loadJavaProcesses();
+                    }
+                    alert(result.message);
+                });
+            });
+
+            // 保存端口号
+            document.getElementById('savePortBtn').addEventListener('click', () => {
+                const middlewareName = document.getElementById('portMiddlewareName').value;
+                const newPort = document.getElementById('newPort').value;
+                
+                if (!newPort || isNaN(parseInt(newPort))) {
+                    alert("请输入有效的端口号");
+                    return;
+                }
+                
+                fetch(`/api/middleware/nginx/port/${middlewareName}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ port: newPort })
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.status === 'success') {
+                        updatePortModal.hide();
+                        document.getElementById('updatePortForm').reset();
+                        // 重新加载中间件列表显示最新的端口号
+                        loadMiddlewares();
+                    }
+                    alert(result.message);
+                });
+            });
+
+            // 保存代理配置
+            document.getElementById('saveProxyBtn').addEventListener('click', () => {
+                const form = document.getElementById('addProxyForm');
+                const formData = new FormData(form);
+                const middlewareName = document.getElementById('proxyMiddlewareName').value;
+                const data = Object.fromEntries(formData.entries());
+                
+                // 验证数据
+                if (!data.suffix || !data.target) {
+                    alert("请填写所有字段");
+                    return;
+                }
+                
+                // 确保suffix以/开头
+                if (!data.suffix.startsWith('/')) {
+                    data.suffix = '/' + data.suffix;
+                }
+                
+                fetch(`/api/middleware/nginx/proxy/${middlewareName}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.status === 'success') {
+                        addProxyModal.hide();
+                        form.reset();
+                    }
+                    alert(result.message);
+                });
+            });
+        });
+        
+        // 加载服务列表
+        function loadServices() {
+            fetch('/api/services')
+                .then(response => response.json())
+                .then(services => {
+                    const serviceList = document.getElementById('service-list');
+                    serviceList.innerHTML = '';
+                    
+                    services.forEach(service => {
+                        const card = createServiceCard(service);
+                        serviceList.appendChild(card);
+                    });
+                });
+        }
+        
+        // 创建服务卡片
+        function createServiceCard(serviceName) {
+            const col = document.createElement('div');
+            col.className = 'col-md-12 mb-3';
+            
+            col.innerHTML = `
+                <div class="card">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title">${serviceName}</h5>
+                            <p class="card-text status-label" id="status-${serviceName}">检查中...</p>
+                        </div>
+                        <div>
+                            <button class="btn btn-success me-2" onclick="startService('${serviceName}')">启动</button>
+                            <button class="btn btn-danger me-2" onclick="stopService('${serviceName}')">停止</button>
+                            <button class="btn btn-warning" onclick="restartService('${serviceName}')">重启</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            return col;
+        }
+        
+        // 更新服务状态
+        function updateServiceStatus(services) {
+            for (const [serviceName, isRunning] of Object.entries(services)) {
+                const statusLabel = document.getElementById(`status-${serviceName}`);
+                if (statusLabel) {
+                    statusLabel.textContent = isRunning ? "运行中" : "已停止";
+                    statusLabel.className = `card-text status-label ${isRunning ? 'status-running' : 'status-stopped'}`;
+                }
+            }
+        }
+        
+        // 启动服务
+        function startService(serviceName) {
+            fetch(`/api/services/start/${serviceName}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                });
+        }
+        
+        // 停止服务
+        function stopService(serviceName) {
+            fetch(`/api/services/stop/${serviceName}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                });
+        }
+        
+        // 重启服务
+        function restartService(serviceName) {
+            fetch(`/api/services/restart/${serviceName}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                });
+        }
+        
+        // 加载中间件列表
+        function loadMiddlewares() {
+            fetch('/api/middleware')
+                .then(response => response.json())
+                .then(middlewares => {
+                    const middlewareList = document.getElementById('middleware-list');
+                    middlewareList.innerHTML = '';
+                    
+                    Object.entries(middlewares).forEach(([name, info]) => {
+                        const card = createMiddlewareCard(name, info);
+                        middlewareList.appendChild(card);
+                    });
+                });
+        }
+        
+        // 创建中间件卡片
+        function createMiddlewareCard(name, info) {
+            const col = document.createElement('div');
+            col.className = 'col-md-12 mb-3';
+            
+            // 检查是否是nginx
+            const isNginx = name.toLowerCase().includes('nginx');
+            
+            // 构建HTML
+            let cardHtml = `
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5 class="card-title">${name}</h5>
+                                <p class="card-text text-muted">进程: ${info.process_name}</p>
+            `;
+            
+            // 如果是nginx，添加端口号显示
+            if (isNginx) {
+                cardHtml += `
+                                <p class="card-text">端口号: <span id="port-${name}">${info.port || '未设置'}</span></p>
+                `;
+            }
+            
+            cardHtml += `
+                                <p class="card-text status-label" id="middleware-status-${name}">检查中...</p>
+                            </div>
+                            <div class="btn-group">
+                                <button class="btn btn-success me-2" onclick="startMiddleware('${name}')">启动</button>
+                                ${info.reload_cmd ? `<button class="btn btn-primary me-2" onclick="reloadMiddleware('${name}')">重载</button>` : ''}
+                                <button class="btn btn-danger me-2" onclick="stopMiddleware('${name}')">停止</button>
+            `;
+            
+            // 如果是nginx，添加额外功能按钮
+            if (isNginx) {
+                cardHtml += `
+                                <button class="btn btn-info me-2" onclick="updateNginxPort('${name}')">修改端口</button>
+                                <button class="btn btn-info me-2" onclick="addNginxProxy('${name}')">添加代理</button>
+                                <button class="btn btn-info me-2" onclick="viewNginxProxy('${name}')">查看代理</button>
+                `;
+            }
+            
+            cardHtml += `
+                                <button class="btn btn-secondary" onclick="deleteMiddleware('${name}')">删除</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            col.innerHTML = cardHtml;
+            return col;
+        }
+        
+        // 更新中间件状态
+        function updateMiddlewareStatus(middlewares) {
+            for (const [name, info] of Object.entries(middlewares)) {
+                const statusLabel = document.getElementById(`middleware-status-${name}`);
+                if (statusLabel) {
+                    const isRunning = info.pid !== null;
+                    statusLabel.textContent = isRunning ? "运行中" : "未运行";
+                    statusLabel.className = `card-text status-label ${isRunning ? 'status-running' : 'status-stopped'}`;
+                }
+            }
+        }
+        
+        // 加载Java进程列表
+        function loadJavaProcesses() {
+            fetch('/api/java')
+                .then(response => response.json())
+                .then(processes => {
+                    const javaList = document.getElementById('java-list');
+                    javaList.innerHTML = '';
+                    
+                    Object.entries(processes).forEach(([name, info]) => {
+                        const card = createJavaCard(name, info);
+                        javaList.appendChild(card);
+                    });
+                });
+        }
+        
+        // 创建Java进程卡片
+        function createJavaCard(name, info) {
+            const col = document.createElement('div');
+            col.className = 'col-md-12 mb-3';
+            
+            col.innerHTML = `
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5 class="card-title">${name}</h5>
+                                <p class="card-text text-muted">JAR: ${info.jar_name}</p>
+                                <p class="card-text status-label" id="java-status-${name}">检查中...</p>
+                            </div>
+                            <div class="btn-group">
+                                <button class="btn btn-success me-2" onclick="startJava('${name}')">运行</button>
+                                <button class="btn btn-danger me-2" onclick="stopJava('${name}')">停止</button>
+                                <button class="btn btn-warning me-2" onclick="configureJava('${name}')">配置</button>
+                                <button class="btn btn-secondary" onclick="deleteJava('${name}')">删除</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            return col;
+        }
+        
+        // 更新Java进程状态
+        function updateJavaStatus(processes) {
+            for (const [name, info] of Object.entries(processes)) {
+                const statusLabel = document.getElementById(`java-status-${name}`);
+                if (statusLabel) {
+                    const isRunning = info.pid !== null;
+                    statusLabel.textContent = isRunning ? "运行中" : "未运行";
+                    statusLabel.className = `card-text status-label ${isRunning ? 'status-running' : 'status-stopped'}`;
+                }
+            }
+        }
+        
+        // 文件浏览器相关函数
+        let currentPath = "";
+        let targetField = null;  // 存储当前打开文件浏览器的目标字段
+        
+        // 初始化文件浏览器
+        const fileBrowserModal = new bootstrap.Modal(document.getElementById('fileBrowserModal'));
+        
+        // 打开文件浏览器
+        function openFileBrowser(path, target) {
+            currentPath = path || "";
+            targetField = target;
+            
+            // 加载文件列表
+            loadFileList(currentPath);
+            
+            // 显示模态框
+            fileBrowserModal.show();
+        }
+        
+        // 加载文件列表
+        function loadFileList(path) {
+            console.log('正在加载路径:', path);
+            fetch(`/api/file-browser?path=${encodeURIComponent(path)}`)
+                .then(response => {
+                    console.log('API响应状态:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP错误! 状态: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('API返回数据:', data);
+                    if (data.status === "success") {
+                        // 更新当前路径
+                        currentPath = data.path;
+                        console.log('当前路径已更新为:', currentPath);
+                        
+                        // 更新面包屑导航
+                        updateBreadcrumb(currentPath);
+                        
+                        // 更新文件列表
+                        const fileList = document.getElementById('file-list');
+                        fileList.innerHTML = '';
+                        
+                        if (data.is_dir) {
+                            console.log(`正在显示目录内容，共${data.items.length}个项目`);
+                            data.items.forEach(item => {
+                                const listItem = document.createElement('a');
+                                listItem.className = `list-group-item list-group-item-action d-flex align-items-center ${item.is_dir ? 'fw-bold' : ''}`;
+                                listItem.href = "#";
+                                
+                                // 添加图标
+                                const icon = document.createElement('i');
+                                icon.className = item.is_dir ? 'bi bi-folder me-2' : 'bi bi-file me-2';
+                                listItem.appendChild(icon);
+                                
+                                // 添加文件名
+                                const textNode = document.createTextNode(item.name);
+                                listItem.appendChild(textNode);
+                                
+                                // 添加点击事件
+                                if (item.is_dir) {
+                                    listItem.addEventListener('click', function(e) {
+                                        e.preventDefault();
+                                        const newPath = currentPath ? `${currentPath}/${item.name}` : item.name;
+                                        console.log('点击了目录:', item.name, '，新路径:', newPath);
+                                        loadFileList(newPath);
+                                    });
+                                } else {
+                                    listItem.addEventListener('click', function(e) {
+                                        e.preventDefault();
+                                        // 如果是文件，可以选择文件所在目录
+                                        console.log('点击了文件:', item.name);
+                                        document.getElementById('selectPathBtn').click();
+                                    });
+                                }
+                                
+                                fileList.appendChild(listItem);
+                            });
+                        }
+                    } else {
+                        console.error('API返回错误:', data.message);
+                        alert(data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('加载文件列表失败:', error);
+                    alert('加载文件列表失败: ' + error.message);
+                });
+        }
+        
+        // 更新面包屑导航
+        function updateBreadcrumb(path) {
+            const breadcrumb = document.getElementById('file-path-breadcrumb');
+            breadcrumb.innerHTML = '<li class="breadcrumb-item"><a href="#" data-path="">根目录</a></li>';
+            
+            if (path) {
+                // 分割路径
+                const parts = path.split(/[\/\\]/);
+                let currentPath = "";
+                
+                parts.forEach((part, index) => {
+                    if (part) {
+                        currentPath += (currentPath ? "/" : "") + part;
+                        
+                        const item = document.createElement('li');
+                        item.className = "breadcrumb-item";
+                        
+                        if (index === parts.length - 1) {
+                            item.classList.add('active');
+                            item.textContent = part;
+                        } else {
+                            const link = document.createElement('a');
+                            link.href = "#";
+                            link.textContent = part;
+                            link.dataset.path = currentPath;
+                            
+                            link.addEventListener('click', function(e) {
+                                e.preventDefault();
+                                loadFileList(this.dataset.path);
+                            });
+                            
+                            item.appendChild(link);
+                        }
+                        
+                        breadcrumb.appendChild(item);
+                    }
+                });
+            }
+        }
+        
+        // 选择当前路径
+        document.getElementById('selectPathBtn').addEventListener('click', function() {
+            if (targetField && currentPath) {
+                targetField.value = currentPath;
+                fileBrowserModal.hide();
+            }
+        });
+        
+        // 为第一个根目录链接添加点击事件
+        document.querySelector('#file-path-breadcrumb li:first-child a').addEventListener('click', function(e) {
+            e.preventDefault();
+            loadFileList("");
+        });
+        
+        // 修改中间件表单，添加文件浏览按钮
+        document.addEventListener('DOMContentLoaded', function() {
+            // 在工作目录输入框后添加浏览按钮
+            const workDirInput = document.querySelector('#addMiddlewareForm [name="work_dir"]');
+            if (workDirInput) {
+                const inputGroup = document.createElement('div');
+                inputGroup.className = 'input-group';
+                
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'btn btn-outline-secondary';
+                button.textContent = '浏览';
+                button.addEventListener('click', function() {
+                    openFileBrowser(workDirInput.value, workDirInput);
+                });
+                
+                // 将输入框放入输入组
+                workDirInput.parentNode.insertBefore(inputGroup, workDirInput);
+                inputGroup.appendChild(workDirInput);
+                inputGroup.appendChild(button);
+            }
+            
+            // 在Java启动脚本输入框后添加浏览按钮
+            const scriptInput = document.querySelector('#addJavaForm [name="script"]');
+            if (scriptInput) {
+                const inputGroup = document.createElement('div');
+                inputGroup.className = 'input-group';
+                
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'btn btn-outline-secondary';
+                button.textContent = '浏览';
+                button.addEventListener('click', function() {
+                    openFileBrowser(scriptInput.value, scriptInput);
+                });
+                
+                // 将输入框放入输入组
+                scriptInput.parentNode.insertBefore(inputGroup, scriptInput);
+                inputGroup.appendChild(scriptInput);
+                inputGroup.appendChild(button);
+            }
+        });
+        
+        // 中间件相关操作函数
+        function startMiddleware(middlewareName) {
+            fetch(`/api/middleware/start/${middlewareName}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    // 重新加载中间件状态
+                    loadMiddlewares();
+                })
+                .catch(error => {
+                    console.error('启动中间件失败:', error);
+                    alert('启动中间件失败，请检查控制台');
+                });
+        }
+
+        function stopMiddleware(middlewareName) {
+            fetch(`/api/middleware/stop/${middlewareName}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    // 重新加载中间件状态
+                    loadMiddlewares();
+                })
+                .catch(error => {
+                    console.error('停止中间件失败:', error);
+                    alert('停止中间件失败，请检查控制台');
+                });
+        }
+
+        function reloadMiddleware(middlewareName) {
+            fetch(`/api/middleware/reload/${middlewareName}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    // 重新加载中间件状态
+                    loadMiddlewares();
+                })
+                .catch(error => {
+                    console.error('重载中间件失败:', error);
+                    alert('重载中间件失败，请检查控制台');
+                });
+        }
+
+        function deleteMiddleware(middlewareName) {
+            if (confirm(`确定要删除 ${middlewareName} 吗？`)) {
+                fetch(`/api/middleware/delete/${middlewareName}`, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        alert(data.message);
+                        // 重新加载中间件列表
+                        loadMiddlewares();
+                    })
+                    .catch(error => {
+                        console.error('删除中间件失败:', error);
+                        alert('删除中间件失败，请检查控制台');
+                    });
+            }
+        }
+
+        // Java进程相关操作函数
+        function startJava(processName) {
+            fetch(`/api/java/start/${processName}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    // 重新加载Java进程状态
+                    loadJavaProcesses();
+                })
+                .catch(error => {
+                    console.error('启动Java进程失败:', error);
+                    alert('启动Java进程失败，请检查控制台');
+                });
+        }
+
+        function stopJava(processName) {
+            fetch(`/api/java/stop/${processName}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    // 重新加载Java进程状态
+                    loadJavaProcesses();
+                })
+                .catch(error => {
+                    console.error('停止Java进程失败:', error);
+                    alert('停止Java进程失败，请检查控制台');
+                });
+        }
+
+        function configureJava(processName) {
+            const scriptPath = prompt("请输入启动脚本路径:");
+            if (scriptPath) {
+                fetch(`/api/java/configure/${processName}`, { 
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ script: scriptPath })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    // 重新加载Java进程列表
+                    loadJavaProcesses();
+                })
+                .catch(error => {
+                    console.error('配置Java进程失败:', error);
+                    alert('配置Java进程失败，请检查控制台');
+                });
+            }
+        }
+
+        function deleteJava(processName) {
+            if (confirm(`确定要删除 ${processName} 吗？`)) {
+                fetch(`/api/java/delete/${processName}`, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        alert(data.message);
+                        // 重新加载Java进程列表
+                        loadJavaProcesses();
+                    })
+                    .catch(error => {
+                        console.error('删除Java进程失败:', error);
+                        alert('删除Java进程失败，请检查控制台');
+                    });
+            }
+        }
+
+        // Nginx端口更新函数
+        function updateNginxPort(middlewareName) {
+            // 先获取当前端口
+            fetch(`/api/middleware/nginx/port/${middlewareName}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        document.getElementById('portMiddlewareName').value = middlewareName;
+                        document.getElementById('newPort').value = data.port;
+                        new bootstrap.Modal(document.getElementById('updatePortModal')).show();
+                    } else {
+                        // 即使获取失败也允许设置新端口
+                        document.getElementById('portMiddlewareName').value = middlewareName;
+                        document.getElementById('newPort').value = '';
+                        new bootstrap.Modal(document.getElementById('updatePortModal')).show();
+                    }
+                })
+                .catch(error => {
+                    console.error('获取端口号失败:', error);
+                    // 仍然允许设置新端口
+                    document.getElementById('portMiddlewareName').value = middlewareName;
+                    document.getElementById('newPort').value = '';
+                    new bootstrap.Modal(document.getElementById('updatePortModal')).show();
+                });
+        }
+
+        // 添加Nginx代理配置
+        function addNginxProxy(middlewareName) {
+            document.getElementById('proxyMiddlewareName').value = middlewareName;
+            new bootstrap.Modal(document.getElementById('addProxyModal')).show();
+        }
+
+        // 查看Nginx代理配置
+        function viewNginxProxy(middlewareName) {
+            // 获取代理配置
+            fetch(`/api/middleware/nginx/proxy/${middlewareName}`)
+                .then(response => response.json())
+                .then(data => {
+                    const tableBody = document.getElementById('proxyTableBody');
+                    tableBody.innerHTML = '';
+                    
+                    if (data.status === 'success' && data.proxies && data.proxies.length > 0) {
+                        data.proxies.forEach(proxy => {
+                            const row = document.createElement('tr');
+                            
+                            const pathCell = document.createElement('td');
+                            pathCell.textContent = proxy.path;
+                            row.appendChild(pathCell);
+                            
+                            const targetCell = document.createElement('td');
+                            targetCell.textContent = proxy.target;
+                            row.appendChild(targetCell);
+                            
+                            tableBody.appendChild(row);
+                        });
+                    } else {
+                        // 如果没有代理配置或发生错误
+                        const row = document.createElement('tr');
+                        const cell = document.createElement('td');
+                        cell.colSpan = 2;
+                        cell.className = 'text-center';
+                        cell.textContent = data.message || '未找到代理配置';
+                        row.appendChild(cell);
+                        tableBody.appendChild(row);
+                    }
+                    
+                    new bootstrap.Modal(document.getElementById('viewProxyModal')).show();
+                })
+                .catch(error => {
+                    console.error('获取代理配置失败:', error);
+                    
+                    const tableBody = document.getElementById('proxyTableBody');
+                    tableBody.innerHTML = '';
+                    const row = document.createElement('tr');
+                    const cell = document.createElement('td');
+                    cell.colSpan = 2;
+                    cell.className = 'text-center';
+                    cell.textContent = '获取代理配置失败';
+                    row.appendChild(cell);
+                    tableBody.appendChild(row);
+                    
+                    new bootstrap.Modal(document.getElementById('viewProxyModal')).show();
+                });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+{
+    "eureka": {
+        "process": "eureka",
+        "jar_name": "tx-eureka.jar",
+        "script": "E:\\sdk\\Wish3DEarthV2.6.6\\service\\runEureka.bat"
+    }
+}
